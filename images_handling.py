@@ -6,7 +6,7 @@ import math
 import os 
 
 ### Import from other modules of the app
-from dataset import already_in_dataset
+from dataset import already_in_dataset, get_indexes_in_dataset
 
 def get_street_view_images(api_key, location, size, headings, pitch=0, fov=90):
     """
@@ -19,7 +19,6 @@ def get_street_view_images(api_key, location, size, headings, pitch=0, fov=90):
     base_url = "https://maps.googleapis.com/maps/api/streetview"
     for heading in headings:
         params = {
-
             "key": api_key,
             "location": f"{location[0]},{location[1]}",
             "size": size,
@@ -27,7 +26,6 @@ def get_street_view_images(api_key, location, size, headings, pitch=0, fov=90):
             "pitch": pitch,
             "fov": fov,
             "source": "outdoor"
-        
         }
 
         response = requests.get(base_url, params=params)
@@ -39,7 +37,6 @@ def get_street_view_images(api_key, location, size, headings, pitch=0, fov=90):
             print(f"Error fetching image with heading {heading}: {response.status_code}")
 
     return images
-
 
 def calculate_orientation(coord1, coord2):
     """
@@ -107,13 +104,9 @@ def generate_images(points_df, api_key, image_size):
     """
 
     # Get list of indexes already in dataset
-    items = os.listdir("Data\DetroitImageDataset_v2") 
-    indexes = []
-    for item in os.listdir("Data\DetroitImageDataset_v2") :
-        idx = item.split("_")[0]
-        indexes.append(idx)
+    indexes = get_indexes_in_dataset()
 
-    # Pick a point -- make it random 
+    # Pick a point -- make it random and exclude indexes found above
     p = generate_unique_random(indexes, 0, len(points_df))
     print(p)
 
