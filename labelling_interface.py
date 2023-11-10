@@ -16,7 +16,19 @@ def label_page():
 
     # STREAMLIT APP CORE
     st.set_page_config(layout="wide")
+
     st.title("Labeling Interface - EV Charging Stations Project")
+    st.markdown(""" ## Labeling Guidelines
+Please follow the guidelines below to ensure accurate labeling:
+
+- **Feasibility**: Assess if each image depicts a feasible location for an EV charging station.
+- **Uncertainty**: If unsure, use the 'unsure' codes to reflect this.
+- **Consistency**: Apply the labeling codes consistently across similar images.
+- **Quality Check**: Report any images that are unclear or not visible as 'Bad Data'.
+
+Remember, accurate labels help improve the quality of our project data.""")
+    
+    st.markdown('---')
 
     if 'data_points' not in st.session_state:
         st.session_state.data_points = []
@@ -28,7 +40,7 @@ def label_page():
         st.session_state.metadata = []
 
     if st.markdown('<style>div.row-widget.stButton > button { width: 200px; height: 50px; font-size: 1.5em; }</style>', unsafe_allow_html=True):
-        if st.button("Generate"):
+        if st.button("Generate New Datapoints"):
             st.session_state.data_points, st.session_state.metadata = generate_images(points_df, api_key, image_size)
 
     if st.session_state.data_points:
