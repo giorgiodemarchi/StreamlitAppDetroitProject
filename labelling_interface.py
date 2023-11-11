@@ -15,18 +15,32 @@ def label_page():
     image_size = "640x480"
 
     # STREAMLIT APP CORE
-    st.set_page_config(layout="wide")
+    st.set_page_config(layout="wide", page_title="MIT ORC - Detroit Project")
 
     st.title("Labeling Interface - EV Charging Stations Project")
-    st.markdown(""" ## Labeling Guidelines
-Please follow the guidelines below to ensure accurate labeling:
+    
+    st.markdown('---')
+    st.markdown(""" ### Guidelines
+The goal of this interface is to label the images as either feasible or infeasible for the installation of an EV charging station. This interface provides, at each request, two datapoints (images) of a location in Detroit. The images are taken from Google Street View and represent the two sides of the street. 
 
-- **Feasibility**: Assess if each image depicts a feasible location for an EV charging station.
-- **Uncertainty**: If unsure, use the 'unsure' codes to reflect this.
-- **Consistency**: Apply the labeling codes consistently across similar images.
-- **Quality Check**: Report any images that are unclear or not visible as 'Bad Data'.
 
-Remember, accurate labels help improve the quality of our project data.""")
+                
+We define a location as feasible if it has the following characteristics:
+- The location has a sidewalk that is at least 5 feet wide
+- The location has a car parking on the side of the street
+- There is no fire hydrant or bus stop in the location
+- There is no other types of impediment (e.g. tree, bench, etc.) in the location.
+                
+Given the relatively high complexity of the labelling task, we offer the following labels:
+
+- **Infeasible (code: 0)**: The images provide good visibility and there is no space for an EV charging station.
+- **Feasible (code: 1)**: The images provide good visibility and there is clearly space on the sidewalk for an EV charging station.
+- **Infeasible but unsure (code: 2)**: The images do not provide good visibility and you are unsure if there is space for an EV charging station, but you believe it is infeasible.
+- **Feasible but unsure (code: 3)**: The images do not provide good visibility and you are unsure if there is space for an EV charging station, but you believe it is feasible.
+- **Bad Data (code: 4)**: The image is not pointed at a side of a street (e.g. cross of sreets, parking lot, etc.)
+
+
+Please make sure the images are correctly saved (two green success messages at the bottom of the page) before refreshing new datapoints.""")
     
     st.markdown('---')
 
