@@ -1,0 +1,8 @@
+label_env
+streamlitappenv
+
+.streamlit 
+.vscode 
+Data
+
+__pycache__

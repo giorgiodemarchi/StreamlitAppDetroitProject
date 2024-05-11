@@ -1,8 +1,62 @@
 import pandas as pd
 import boto3 
 from io import StringIO, BytesIO
+import io
 import streamlit as st
 from datetime import datetime
+from PIL import Image 
+
+def download_datapoint(folder):
+    """
+    Given a ID/folder name, returns images and metadat
+
+    """
+
+    s3_client = boto3.client('s3',
+                        aws_access_key_id=st.secrets["aws_access_key_id"],
+                        aws_secret_access_key=st.secrets["aws_secret_access_key"])
+
+    path = f"GoogleDetroitDatabase/{folder}"
+
+    # Metadata
+    point_id, angle, lat, lon = folder.split("_")
+    metadata = {
+        'p': point_id,
+        'angle': angle,
+        'latitude': lat,
+        'longitude': lon
+    }
+
+    # Read images and store them
+    images = []
+    for i in range(5):
+        image_key = f"{path}/image_{i}.png"
+        image_obj = s3_client.get_object(Bucket='detroit-project-data-bucket', Key=image_key)
+        image = Image.open(io.BytesIO(image_obj['Body'].read()))
+        images.append(image)
+
+    return images, metadata
+
+def extract_images():
+    """
+    - Reads active learning tracking dataset
+    - Reads the next image to label
+    - Downloads the image to label
+    - Returns Images and metadata
+    """
+
+    al_tracking_path = 'LocationSamplingDataset/active_learning_model_predictions.csv'
+    tracking = read_location_sampling(file_key=al_tracking_path)
+
+    tracking = tracking[tracking['label']==5] ## Flag for unlabelled data
+    # take the most uncertain datapoint as per model prediction (uncertainty based active learning)
+    to_label = tracking.sort_values('certainty', ascending=True).iloc[0]
+
+    folder_id = to_label['ID']
+
+    images, metadata = download_datapoint(folder_id)
+
+    return [images], [metadata]
 
 def get_folder_names():
     """
@@ -72,8 +126,7 @@ def get_indexes_in_dataset():
 
     return indexes
 
-
-def read_location_sampling():
+def read_location_sampling(file_key = 'LocationSamplingDataset/DowntownDetroitPointsDataset_v2.csv'):
     """
     Input: None
     Output: Dataframe with location sampling dataset
@@ -85,7 +138,7 @@ def read_location_sampling():
 
 
     bucket_name = 'detroit-project-data-bucket'
-    file_key = 'LocationSamplingDataset/DowntownDetroitPointsDataset_v2.csv'
+    #file_key = 'LocationSamplingDataset/DowntownDetroitPointsDataset_v2.csv'
 
     obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
 
@@ -117,10 +170,112 @@ def read_tracking_data():
 
     return df
 
-def save_tracking_dataset(df):
+def load_data(bucket_name, dataset_prefix):
+    """
+    Load data from S3 bucket
+    """
+    # Initialize boto3 client
+    s3 = boto3.client('s3', aws_access_key_id=st.secrets["aws_access_key_id"], aws_secret_access_key=st.secrets["aws_secret_access_key"])
 
-    pass
+    # Initialize lists to store data
+    ids = []
+    angles = []
+    latitudes = []
+    longitudes = []
+    labels = []
+    image_numbers = []
+    images = []
+    addresses = []
+    labellers = []
+
+    # List objects within a given prefix
+    folders = get_folder_names()
+
+    for datapoint in folders:
+        path = f"{dataset_prefix}{datapoint}"
+
+        point_id, angle, lat, lon = datapoint.split("_")
+
+        # Read metadata
+        metadata_file = f"{path}/metadata.txt"
+        metadata_obj = s3.get_object(Bucket=bucket_name, Key=metadata_file)
+        metadata_content = metadata_obj['Body'].read().decode('latin-1')
+        metadata = {}
+        for content in metadata_content.splitlines():
+            if ":" in content:
+                data_name = content.split(":")[0]
+                data_value = content.split(":")[1]
+                metadata[data_name] = data_value
+        
+
+        # Read images and store them
+        for i in range(5):
+            image_key = f"{path}/image_{i}.png"
+            image_obj = s3.get_object(Bucket='detroit-project-data-bucket', Key=image_key)
+            image = Image.open(io.BytesIO(image_obj['Body'].read()))
+
+            # Append data to lists
+            ids.append(point_id)
+            angles.append(angle)
+            latitudes.append(lat)
+            longitudes.append(lon)
+            labels.append(metadata['Label'])
+            image_numbers.append(i)
+            images.append(image)
+            addresses.append(metadata['Address'])
+            if 'Labeller username' in metadata.keys():
+                labellers.append(metadata['Labeller username'])
+            else:
+                labellers.append("Unknown")
+                
+            
+    # Create a DataFrame
+    data = {
+        "id": ids,
+        "angle": angles,
+        "latitude": latitudes,
+        "longitude": longitudes,
+        "label": labels,
+        "image_number": image_numbers,
+        "image": images,
+        "address": addresses,
+        "labeller": labellers
+    }
+
+    df = pd.DataFrame(data)
     
+    return df
+
+def update_active_learning_csv(folder, label):
+    """
+    Update active learning tracking csv with the new label
+    """
+    s3_client = boto3.client('s3',
+                         aws_access_key_id=st.secrets["aws_access_key_id"],
+                         aws_secret_access_key=st.secrets["aws_secret_access_key"])
+
+    al_tracking_path = 'LocationSamplingDataset/active_learning_model_predictions.csv'
+    al_tracking = read_location_sampling(file_key=al_tracking_path)
+
+    al_tracking.loc[al_tracking['ID']==folder, 'label'] = label
+
+    csv_buffer = StringIO()
+    al_tracking.to_csv(csv_buffer, index=False)
+    s3_client.put_object(Bucket='detroit-project-data-bucket', Key=al_tracking_path, Body=csv_buffer.getvalue())
+
+def save_label_activelearning(label, metadata):
+    """
+    
+    """
+    angle = metadata['angle']
+    p = metadata['p']
+    latitude = metadata['latitude']
+    longitude = metadata['longitude']
+
+    folder_name = f"{p}_{angle}_{latitude}_{longitude}"
+
+    update_active_learning_csv(folder_name, label)
+
 def save_label(images, label, metadata, username):
     """
     Function to store the images
@@ -131,7 +286,6 @@ def save_label(images, label, metadata, username):
 
     bucket_name = 'detroit-project-data-bucket'
 
-
     angle = metadata['angle']
     p = metadata['p']
     latitude = metadata['latitude']
@@ -140,7 +294,6 @@ def save_label(images, label, metadata, username):
     headings = metadata['headings']
 
     # Save the observation of first side (images + metadata)
-
     datapoint_id = f"{p}_{angle}_{latitude}_{longitude}"
     base_s3_path = f"DetroitImageDataset_v2/{datapoint_id}"
 
