@@ -5,3 +5,4 @@ Main components:
 - Streamlit interface with authentication to allow multiple users to label data at the same time
 - Data extraction pipeline that samples points (from a pre-collected dataset) in the drivable streets of Detroit, MI
 - AWS interfacing: datapoints are organized and stored on S3
+- Active Learning: Uses model output to decide which data to label based on uncertainty
