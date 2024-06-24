@@ -45,14 +45,14 @@ def extract_images():
     - Returns Images and metadata
     """
 
-    al_tracking_path = 'LocationSamplingDataset/active_learning_model_predictions.csv'
+    al_tracking_path = 'LocationSamplingDataset/close_nhoods_prediction.csv'
     tracking = read_location_sampling(file_key=al_tracking_path)
 
     tracking = tracking[tracking['label']==5] ## Flag for unlabelled data
     # take the most uncertain datapoint as per model prediction (uncertainty based active learning)
     to_label = tracking.sort_values('certainty', ascending=True).iloc[0]
 
-    folder_id = to_label['ID']
+    folder_id = to_label['folder_id']
 
     images, metadata = download_datapoint(folder_id)
 
@@ -254,10 +254,10 @@ def update_active_learning_csv(folder, label):
                          aws_access_key_id=st.secrets["aws_access_key_id"],
                          aws_secret_access_key=st.secrets["aws_secret_access_key"])
 
-    al_tracking_path = 'LocationSamplingDataset/active_learning_model_predictions.csv'
+    al_tracking_path = 'LocationSamplingDataset/close_nhoods_prediction.csv'
     al_tracking = read_location_sampling(file_key=al_tracking_path)
 
-    al_tracking.loc[al_tracking['ID']==folder, 'label'] = label
+    al_tracking.loc[al_tracking['folder_id']==folder, 'label'] = label
 
     csv_buffer = StringIO()
     al_tracking.to_csv(csv_buffer, index=False)

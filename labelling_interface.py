@@ -66,6 +66,7 @@ Please make sure the images are correctly saved (two green success messages at t
                         label_digit = ''.join(filter(str.isdigit, label))
                         if active_learning:
                             save_label_activelearning(label_digit, metadata_image)
+                            print(metadata_image)
                         else:
                             save_label(images, label_digit, metadata_image, username)
                         #st.success(f"Images and label saved successfully!")
@@ -92,7 +93,7 @@ Please make sure the images are correctly saved (two green success messages at t
                                 "Infeasible but unsure",
                                 "Feasible but unsure",
                                 "Bad Data"]
-
+                
                 image_columns = st.columns(5)
                 for col, image in zip(image_columns, images):
                     col.image(image, use_column_width=True)
