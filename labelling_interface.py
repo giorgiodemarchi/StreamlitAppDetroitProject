@@ -1,9 +1,17 @@
 import streamlit as st
 import pandas as pd
 
-
 from images_handling import generate_images
 from dataset import read_location_sampling, save_label, save_label_activelearning, extract_images
+
+labels_to_int = {
+    "Infeasible": 0,
+    "Feasible": 1,
+    "Infeasible but unsure": 2,
+    "Feasible but unsure": 3,
+    "Bad Data": 4
+
+}
 
 def label_page():
     # Get API key
@@ -63,10 +71,12 @@ Please make sure the images are correctly saved (two green success messages at t
                 username = st.session_state.get('user', 'Unknown')
                 for images, label, metadata_image in zip(st.session_state.data_points, st.session_state.labels, st.session_state.metadata):
                     if label:
-                        label_digit = ''.join(filter(str.isdigit, label))
+                        # label_digit = ''.join(filter(str.isdigit, label))
+                        label_digit = labels_to_int[label]
                         if active_learning:
                             save_label_activelearning(label_digit, metadata_image)
                             print(metadata_image)
+                            print(label_digit)
                         else:
                             save_label(images, label_digit, metadata_image, username)
                         #st.success(f"Images and label saved successfully!")
@@ -99,6 +109,7 @@ Please make sure the images are correctly saved (two green success messages at t
                     col.image(image, use_column_width=True)
 
                 label = st.radio(f"Please select the most appropriate label for the above images.", label_options, key=f"label{idx}")
+                
 
                 if idx >= len(st.session_state.labels):
                     st.session_state.labels.append(label)
